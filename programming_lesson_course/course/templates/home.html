@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeMaster - Programming Courses</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{% static 'img/icon.png' %}">
+    <style>
+        .vip-ad {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #000;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            max-width: 300px;
+            animation: slideIn 0.5s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .close-ad {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+        }
+        .course-card {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        .course-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .course-progress {
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+            margin-top: 8px;
+        }
+        .course-progress-bar {
+            height: 100%;
+            border-radius: 2px;
+            background: white;
+        }
+        .difficulty {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .difficulty-beginner {
+            background: #e6f7ee;
+            color: #10b981;
+        }
+        .difficulty-intermediate {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+        .difficulty-advanced {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+        .auth-modal {
+            transition: all 0.3s ease;
+        }
+        .hidden {
+            display: none;
+        }
+        .comment-box {
+            transition: all 0.2s ease;
+            border-radius: 8px;
+        }
+        .comment-box:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .reply-form {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .reply-form.active {
+            max-height: 200px;
+            margin-top: 12px;
+        }
+        .comment-actions {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .comment-box:hover .comment-actions {
+            opacity: 1;
+        }
+        .modal-content {
+            transform: scale(0.95);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .modal-show .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-50">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <a href="#" class="flex items-center">
+                        <i class="fas fa-code text-2xl mr-2"></i>
+                        <span class="text-xl font-bold">CodeMaster</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-6 font-medium text-white">
+                    <a href="#video" class="hover:text-purple-300 transition duration-200">Courses</a>
+                    <a href="#features" class="hover:text-purple-300 transition duration-200">Features</a>
+                    <a href="#testimonials" class="hover:text-purple-300 transition duration-200">Testimonials</a>
+                    <a href="#" id="vip-link" class="hover:text-yellow-300 font-semibold transition duration-200">VIP</a>
+                </div>
+
+
+                <div class="flex items-center space-x-4">
+                    <!-- Username and Logout (Desktop only) -->
+                    {% if user.is_authenticated %}
+                    <div class="relative group text-right p-4 hidden md:block">
+                        <button class="flex items-center space-x-2 font-semibold text-gray-700 hover:text-purple-700 focus:outline-none">
+                            <span>Welcome, {{ user.username }} 👋</span>
+                            <svg class="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div class="absolute right-0 mt-2 w-40 bg-white shadow-md rounded-md hidden group-hover:block z-50">
+                            <form method="POST" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-t-md">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% else %}   
+                        <a href="{% url 'login' %}" id="login-btn" class="px-4 py-2 rounded hover:bg-white hover:bg-opacity-20 transition">Login</a>
+                        <a href="{% url 'signup' %}" id="signup-btn" class="px-4 py-2 bg-white text-purple-700 rounded font-medium hover:bg-gray-100 transition">SignUp</a>
+                    {% endif %}
+                    <button class="md:hidden" id="mobile-menu-btn">
+                            <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden mt-4 pb-4">
+                <a href="#video" class="block py-2 hover:bg-white hover:bg-opacity-20 px-4 rounded transition">Courses</a>
+                <a href="#video" id="video-lessons-link-mobile" class="block py-2 hover:bg-white hover:bg-opacity-20 px-4 rounded transition">Video Lessons</a>
+                <a href="#features" class="block py-2 hover:bg-white hover:bg-opacity-20 px-4 rounded transition">Features</a>
+                <a href="#testimonials" class="block py-2 hover:bg-white hover:bg-opacity-20 px-4 rounded transition">Testimonials</a>
+                <a href="#" id="vip-link-mobile" class="block py-2 hover:bg-white hover:bg-opacity-20 px-4 rounded transition">VIP</a>
+
+                {% if user.is_authenticated %}
+                    <div class="px-4 mt-4">
+                        <p class="text-sm font-semibold text-purple-200">Welcome, {{ user.username }} 👋</p>
+                        <form method="POST" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full mt-2 py-2 text-left text-red-300 hover:bg-red-500 hover:bg-opacity-10 px-4 rounded transition font-semibold">
+                                Logout
+                            </button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="gradient-bg text-white py-20">
+        <div class="container mx-auto px-12 flex flex-col md:flex-row items-center">
+            <div class="md:w-1/2 mb-10 md:mb-0">
+                <h1 class="text-4xl md:text-5xl font-bold mb-4">Master Programming in 2023</h1>
+                <p class="text-xl mb-8">Learn from industry experts with our comprehensive courses and take your coding skills to the next level.</p>
+                <div class="flex space-x-4">
+                    <a href="#video" class="px-6 py-3 bg-white text-purple-700 rounded-lg font-bold hover:bg-gray-100 transition transform hover:-translate-y-1">Start Learning</a>
+                    <button id="vip-hero-link" class="px-6 py-3 border border-white rounded-lg font-bold hover:bg-white hover:bg-opacity-10 transition transform hover:-translate-y-1">Explore Courses</button>
+                </div>
+            </div>
+            <div class="md:w-1/2 relative">
+                <img src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                     alt="Programming" class="rounded-lg shadow-2xl transform hover:scale-105 transition duration-300">
+                <div class="absolute -bottom-16 -right-1 bg-yellow-400 text-gray-900 p-4 rounded-lg shadow-xl max-w-xs transform hover:scale-105 transition duration-300">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-crown mr-2"></i>
+                        <h3 class="font-bold">VIP Courses Available!</h3>
+                    </div>
+                    <p class="text-sm mb-2">Unlock premium content and exclusive benefits</p>
+                    <a href="#" id="vip-ad-btn" class="text-purple-800 font-medium text-sm hover:underline">Learn More →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+
+    <!-- Video Content Section -->
+    <section id="video" class="py-8 bg-white">
+        <div class="container mx-auto px-4 flex flex-col lg:flex-row gap-8">
+
+            <!-- Categories -->
+            <aside id="getstart" class="lg:w-1/5">
+                <h2 class="text-lg font-bold mb-4 flex items-center justify-between">
+                    Categories
+                    <span class="text-right">&#9776;</span>
+                </h2>           
+                <ul class="space-y-3">
+                    <li>
+                        <a href="?category=All"
+                            class="block px-4 py-2 rounded text-sm font-medium transition
+                            {% if selected_category == 'All' %}
+                            bg-purple-600 text-white
+                            {% else %}
+                            text-purple-600 hover:bg-purple-100
+                            {% endif %}">
+                            <i class="fa-solid fa-layer-group" style="color: #c23dff;"></i>
+                            All
+                        </a>
+                    </li>
+                    {% for cat in categories %}
+                    <li>
+                        <a href="?category={{ cat.name }}"
+                        class="block px-4 py-2 rounded text-sm font-medium transition flex items-center justify-between
+                        {% if cat.name == selected_category %}
+                            bg-purple-600 text-white
+                        {% else %}
+                            text-purple-600 hover:bg-purple-100
+                        {% endif %}">
+                            <span class="flex items-center">
+                                <i class="fa-solid fa-code" style="color: #c23dff;"></i>
+                                <span class="ml-2">{{ cat.name }}</span>
+                            </span>
+                            {% if cat.has_vip %}
+                                <span class="flex items-center">
+                                    <i class="fas fa-crown text-yellow-400 ml-2" title="VIP"></i>
+                                    <span class="ml-1 text-yellow-500 font-semibold">VIP</span>
+                                </span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+
+            <!-- Videos -->
+            <main class="lg:w-4/5">
+                {% if user.is_authenticated %}
+                    <h2 class="text-xl font-bold mb-4">{{ selected_category }} Videos</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {% for video in videos %}
+                        <div class="bg-white rounded shadow p-3 hover:shadow-lg relative">
+                            <!-- VIP badge -->
+                            {% if video.vip %}
+                                <span class="absolute top-3 right-3 bg-yellow-400 text-black px-2 py-1 rounded text-xs font-bold flex items-center z-10">
+                                    <i class="fas fa-crown mr-1"></i> VIP
+                                </span>
+                            {% endif %}
+
+                            <!-- Video or lock overlay -->
+                            {% if video.vip and not is_vip %}
+                                <div class="w-full h-48 bg-gray-100 flex items-center justify-center rounded">
+                                    <div class="text-center">
+                                        <i class="fas fa-lock text-3xl text-yellow-500 mb-2"></i>
+                                        <div class="font-bold text-purple-700">VIP Only</div>
+                                        <button id="become-vip" class="mt-2 inline-block text-sm text-purple-700 underline">Become VIP</button>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <iframe class="w-full h-48 rounded"
+                                        src="{{ video.video_url }}"
+                                        frameborder="0"
+                                        allowfullscreen></iframe>
+                            {% endif %}
+                            <h3 class="mt-2 text-lg font-semibold">{{ video.title }}</h3>
+                        </div>
+                        {% empty %}
+                            <p class="text-gray-500 col-span-3 text-center">No videos found.</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="flex justify-center my-8">
+                        <nav aria-label="Page navigation">
+                            <ul class="inline-flex -space-x-px text-base h-10">
+                                {% if videos.has_previous %}
+                                <li>
+                                    <a href="?page={{ videos.previous_page_number }}&category={{ selected_category }}"
+                                    class="flex items-center justify-center px-4 h-10 ms-0 leading-tight text-gray-500 bg-white border border-e-0 border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700">
+                                    Previous
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% for num in videos.paginator.page_range %}
+                                    {% if videos.number == num %}
+                                    <li>
+                                    <span class="flex items-center justify-center px-4 h-10 text-blue-600 border border-gray-300 bg-blue-50">
+                                        {{ num }}
+                                    </span>
+                                    </li>
+                                    {% else %}
+                                    <li>
+                                    <a href="?page={{ num }}&category={{ selected_category }}"
+                                        class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700">
+                                        {{ num }}
+                                    </a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if videos.has_next %}
+                                <li>
+                                    <a href="?page={{ videos.next_page_number }}&category={{ selected_category }}"
+                                    class="flex items-center justify-center px-4 h-10 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700">
+                                    Next
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                {% else %}
+                    <div class="flex flex-col items-center justify-center py-16">
+                        <h2 class="text-2xl font-bold mb-4">Please log in or sign up to view courses</h2>
+                        <div class="space-x-4">
+                            <a href="{% url 'login' %}" class="px-6 py-2 bg-purple-600 text-white rounded font-semibold hover:bg-purple-700 transition">Login</a>
+                            <a href="{% url 'signup' %}" class="px-6 py-2 bg-white text-purple-700 rounded font-semibold border border-purple-600 hover:bg-purple-100 transition">Sign Up</a>
+                        </div>
+                    </div>
+                {% endif %}
+            </main>
+        </div>
+    </section>
+
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">Why Choose CodeMaster?</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chalkboard-teacher text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Expert Instructors</h3>
+                    <p class="text-gray-600">Learn from industry professionals with years of real-world experience.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-laptop-code text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Hands-on Projects</h3>
+                    <p class="text-gray-600">Build real projects to apply what you learn and build your portfolio.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-certificate text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Certification</h3>
+                    <p class="text-gray-600">Earn certificates to showcase your skills to employers.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-headset text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">24/7 Support</h3>
+                    <p class="text-gray-600">Get help whenever you need it from our community and instructors.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-mobile-alt text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Mobile Friendly</h3>
+                    <p class="text-gray-600">Learn on the go with our mobile-optimized platform.</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center">
+                    <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-briefcase text-purple-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Career Services</h3>
+                    <p class="text-gray-600">Get career guidance, resume reviews, and interview preparation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center mb-12">What Our Students Say</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://randomuser.me/api/portraits/women/43.jpg" alt="Student" class="w-12 h-12 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-bold">Sarah Johnson</h4>
+                            <div class="flex">
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"The Web Development course completely transformed my career. I went from knowing nothing to landing my first developer job in 6 months!"</p>
+                </div>
+                
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Student" class="w-12 h-12 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-bold">Michael Chen</h4>
+                            <div class="flex">
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"The Data Science curriculum is incredibly comprehensive. The projects helped me build a strong portfolio that impressed my current employer."</p>
+                </div>
+                
+                <div class="bg-gray-50 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <img src="https://randomuser.me/api/portraits/women/65.jpg" alt="Student" class="w-12 h-12 rounded-full mr-4">
+                        <div>
+                            <h4 class="font-bold">Emily Rodriguez</h4>
+                            <div class="flex">
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star text-yellow-400"></i>
+                                <i class="fas fa-star-half-alt text-yellow-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"I loved the Python course! The instructor explained complex concepts in a way that was easy to understand, even for a complete beginner like me."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 gradient-bg text-white">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready to Start Your Coding Journey?</h2>
+            <p class="text-xl mb-8 max-w-2xl mx-auto">Join thousands of students who have transformed their careers with CodeMaster.</p>
+            <a href="#getstart" class="px-8 py-4 bg-white text-purple-700 rounded-lg font-bold text-lg hover:bg-gray-100 transition transform hover:-translate-y-1">Get Started Now</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <a href="#" class="flex items-center mb-4">
+                        <i class="fas fa-code text-2xl mr-2"></i>
+                        <span class="text-xl font-bold">CodeMaster</span>
+                    </a>
+                    <p class="text-gray-400">Master programming with our comprehensive courses and expert instructors.</p>
+                    <div class="flex space-x-4 mt-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Courses</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Web Development</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Data Science</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Mobile Development</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Game Development</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Databases</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Company</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Careers</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Blog</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Affiliate Program</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Support</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Help Center</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Contact Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">FAQ</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">Community</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-gray-400 mb-4 md:mb-0">© 2023 CodeMaster. All rights reserved.</p>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Terms of Service</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">Cookies</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- VIP Page (hidden by default) -->
+    <div id="vip-page" class="fixed inset-0 bg-white z-50 overflow-y-auto hidden">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex justify-between items-center mb-8">
+                <h1 class="text-3xl font-bold flex items-center">
+                    <i class="fas fa-crown text-yellow-500 mr-2"></i>
+                    <span>CodeMaster VIP</span>
+                </h1>
+                <button id="close-vip" class="text-gray-500 hover:text-gray-700 text-2xl transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div class="bg-purple-50 p-8 rounded-lg border border-purple-200">
+                    <h2 class="text-xl font-bold mb-4">VIP Membership Benefits</h2>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                            <span>Access to all premium courses</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                            <span>Downloadable course materials</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                            <span>Priority support 24/7</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                            <span>Exclusive VIP community</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                            <span>Monthly live Q&A sessions</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check-circle text-purple-600 mt-1 mr-2"></i>
+                            <span>Career coaching sessions</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg border-2 border-purple-300 shadow-lg transform hover:scale-105 transition duration-300">
+                    <div class="text-center mb-6">
+                        <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">MOST POPULAR</span>
+                    </div>
+                    <h2 class="text-2xl font-bold mb-4 text-center">Annual Membership</h2>
+                    <div class="text-center mb-6">
+                        <span class="text-4xl font-bold">$99</span>
+                        <span class="text-gray-600">/year</span>
+                        <p class="text-gray-500 mt-1">That's just $8.25 per month</p>
+                    </div>
+                    <button class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 transition mb-4">Get VIP Access</button>
+                    <p class="text-center text-gray-500 text-sm">7-day money back guarantee</p>
+                </div>
+                
+                <div class="bg-white p-8 rounded-lg border border-gray-200 hover:border-purple-300 transition">
+                    <h2 class="text-2xl font-bold mb-4 text-center">Monthly Membership</h2>
+                    <div class="text-center mb-6">
+                        <span class="text-4xl font-bold">$15</span>
+                        <span class="text-gray-600">/month</span>
+                        <p class="text-gray-500 mt-1">Cancel anytime</p>
+                    </div>
+                    <button class="w-full bg-gray-200 text-gray-800 py-3 rounded-lg font-bold hover:bg-gray-300 transition mb-4">Start Monthly Plan</button>
+                    <p class="text-center text-gray-500 text-sm">Flexible monthly subscription</p>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 p-8 rounded-lg mb-8">
+                <h2 class="text-2xl font-bold mb-6 text-center">VIP Course Library</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition flex">
+                        <div class="mr-4 text-purple-600">
+                            <i class="fas fa-lock-open text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold mb-2">Advanced Python Patterns</h3>
+                            <p class="text-gray-600 text-sm">Dive deep into Python with expert-level techniques including design patterns, performance tuning, and best practices for building clean, maintainable, and scalable applications.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition flex">
+                        <div class="mr-4 text-purple-600">
+                            <i class="fas fa-lock-open text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold mb-2">Machine Learning Deployment</h3>
+                            <p class="text-gray-600 text-sm">Learn to deploy ML models in production environments with containerization, API development, and cloud services.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition flex">
+                        <div class="mr-4 text-purple-600">
+                            <i class="fas fa-lock-open text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold mb-2">Data Structures Masterclass</h3>
+                            <p class="text-gray-600 text-sm">Learn how to organize and manage data efficiently using structures like arrays, stacks, queues, and trees—essential for writing fast, scalable, and reliable code.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition flex">
+                        <div class="mr-4 text-purple-600">
+                            <i class="fas fa-lock-open text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold mb-2">FullStack Development</h3>
+                            <p class="text-gray-600 text-sm">Master both frontend and backend development with advanced concepts in database optimization, API design, and performance tuning.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <h2 class="text-2xl font-bold mb-4">Frequently Asked Questions</h2>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <div class="border-b border-gray-200 pb-4">
+                        <button class="flex justify-between items-center w-full text-left font-medium hover:text-purple-600 transition">
+                            <span>What payment methods do you accept?</span>
+                            <i class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="mt-2 text-gray-600 hidden">
+                            We accept all major credit cards (Visa, MasterCard, American Express), PayPal, and bank transfers for annual plans.
+                        </div>
+                    </div>
+                    <div class="border-b border-gray-200 pb-4">
+                        <button class="flex justify-between items-center w-full text-left font-medium hover:text-purple-600 transition">
+                            <span>Can I cancel my subscription anytime?</span>
+                            <i class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="mt-2 text-gray-600 hidden">
+                            Yes, you can cancel your monthly subscription anytime. For annual plans, you can cancel but we offer prorated refunds for unused months.
+                        </div>
+                    </div>
+                    <div class="border-b border-gray-200 pb-4">
+                        <button class="flex justify-between items-center w-full text-left font-medium hover:text-purple-600 transition">
+                            <span>How do I access VIP courses?</span>
+                            <i class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="mt-2 text-gray-600 hidden">
+                            Once you become a VIP member, all premium courses will be unlocked in your dashboard. You'll see a "VIP" badge on eligible courses.
+                        </div>
+                    </div>
+                    <div class="border-b border-gray-200 pb-4">
+                        <button class="flex justify-between items-center w-full text-left font-medium hover:text-purple-600 transition">
+                            <span>Is there a free trial for VIP?</span>
+                            <i class="fas fa-chevron-down text-gray-400 transition-transform"></i>
+                        </button>
+                        <div class="mt-2 text-gray-600 hidden">
+                            We don't offer a free trial, but we have a 3-day money back guarantee if you're not satisfied with the VIP experience.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="vip-ad" id="vipAd">
+        <button class="close-ad" id="closeAd">&times;</button>
+        <div class="flex items-center mb-2">
+            <i class="fas fa-crown mr-2 fa-shake"></i>
+            <h3 class="font-bold">VIP Courses Available!</h3>
+        </div>
+        <p class="text-sm mb-2">Unlock premium content and exclusive benefits with our VIP membership</p>
+        <button id="vipAdBtn" class="w-full bg-black text-white py-1 rounded text-sm font-medium hover:bg-gray-800 transition">Learn More</button>
+    </div>
+
+    <script>
+        // Show VIP ad after 30 seconds
+        setTimeout(() => {
+            document.getElementById('vipAd').style.display = 'block';
+        }, 30000);
+
+        // Close ad button
+        document.getElementById('closeAd').addEventListener('click', () => {
+            document.getElementById('vipAd').style.display = 'none';
+        });
+
+        // VIP ad button
+        document.getElementById('vipAdBtn').addEventListener('click', () => {
+            document.getElementById('vipAd').style.display = 'none';
+            document.getElementById('vip-page').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        });
+
+        // Mobile menu toggle
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        
+        // VIP page
+        const vipLink = document.getElementById('vip-link');
+        const vipHeroLink = document.getElementById('vip-hero-link');
+        const vipLinkMobile = document.getElementById('vip-link-mobile');
+        const vipPage = document.getElementById('vip-page');
+        const closeVip = document.getElementById('close-vip');
+        const vipadbtn = document.getElementById('vip-ad-btn');
+        const becomeVip = document.getElementById('become-vip');
+        
+        function toggleVipPage(show) {
+            if (show) {
+                vipPage.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } else {
+                vipPage.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+            }
+        }
+        
+        vipLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleVipPage(true);
+        });
+        
+        vipHeroLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleVipPage(true);
+        });
+        
+        vipLinkMobile.addEventListener('click', (e) => {
+            e.preventDefault();
+            mobileMenu.classList.add('hidden');
+            toggleVipPage(true);
+        });
+        
+        closeVip.addEventListener('click', () => {
+            toggleVipPage(false);
+        });
+
+        vipadbtn.addEventListener('click', () => {
+            toggleVipPage(true);
+        })
+
+        becomeVip.addEventListener('click', () => {
+            toggleVipPage(true);
+        });
+        
+
+        // FAQ accordion
+        const faqButtons = document.querySelectorAll('#vip-page .border-b button');
+        
+        faqButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const answer = button.nextElementSibling;
+                answer.classList.toggle('hidden');
+                
+                const icon = button.querySelector('i');
+                if (icon.classList.contains('fa-chevron-down')) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                } else {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            });
+        });
+
+        // Categories and Videos Filtering
+        document.addEventListener("DOMContentLoaded", function () {
+            const buttons = document.querySelectorAll(".category-btn");
+            const videoSections = document.querySelectorAll(".video-section");
+
+            buttons.forEach(btn => {
+            btn.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                const selected = this.dataset.category;
+
+                videoSections.forEach(section => {
+                const sectionCat = section.dataset.category;
+
+                if (selected === "all" || sectionCat === selected) {
+                    section.style.display = "block";
+                } else {
+                    section.style.display = "none";
+                }
+                });
+            });
+            });
+        });
+
+        // Category button active state
+        document.addEventListener("DOMContentLoaded", function () {
+            const buttons = document.querySelectorAll('.category-btn');
+
+            buttons.forEach(button => {
+                button.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    // Remove active classes from all
+                    buttons.forEach(btn => {
+                        btn.classList.remove('bg-blue-100', 'text-blue-700', 'font-semibold');
+                    });
+
+                    // Add active classes to clicked one
+                    this.classList.add('bg-blue-100', 'text-blue-700', 'font-semibold');
+
+                    // Optional: You can also filter videos here if you're not doing it server-side
+                    const selectedCategory = this.dataset.category;
+
+                    const videoSections = document.querySelectorAll('.video-section');
+                    videoSections.forEach(section => {
+                        const sectionCategory = section.dataset.category;
+                        if (selectedCategory === 'all' || selectedCategory === sectionCategory) {
+                            section.classList.remove('hidden');
+                        } else {
+                            section.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
+</body>
+</html>
